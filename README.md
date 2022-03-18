@@ -7,7 +7,7 @@ GitHub repository for the launch festival on [stackstream](https://stack-stream.
 
 ## Working with Apache Kafka
 
-![](poster.png)
+![](Patrick-Streamingplan.png)
 
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/patrick-neff-7bb3b21a4/
