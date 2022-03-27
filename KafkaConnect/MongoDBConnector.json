@@ -1,0 +1,13 @@
+{
+  "name": "MongoDBSink",
+  "config": {
+    "connector.class": "com.mongodb.kafka.connect.MongoSinkConnector",
+    "connection.uri": "mongodb://user:password@mongo:27017/admin",
+    "database": "TestDB",
+    "collection": "Person",
+    "topics": "test-topic-person",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "consumer.override.auto.offset.reset": "earliest"
+  }
+}
