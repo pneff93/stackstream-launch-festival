@@ -4,6 +4,7 @@
 
 GitHub repository for the launch festival on [stackstream](https://stack-stream.com/) from
 24th - 31st of March 2022.
+Sessions are recored and can be watched on my [profile](https://stack-stream.com/profile/pneff93) under rooms.
 
 ## Working with Apache Kafka
 
