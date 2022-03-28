@@ -4,4 +4,9 @@ fun main() {
 
     val logger = logger("Kafka Streams")
 
+    val streamsProperties = StreamProperties()
+    val streamProcessor = StreamProcessor(streamsProperties)
+
+    streamProcessor.streams.start()
+
 }

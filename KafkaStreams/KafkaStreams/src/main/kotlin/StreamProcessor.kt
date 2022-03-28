@@ -15,6 +15,7 @@ class StreamProcessor(properties: StreamProperties) {
 
     val streams: KafkaStreams
 
+    private val serdeRawData: SpecificAvroSerde<SensorData>
     private val serdeDataPerValue: SpecificAvroSerde<SensorDataPerValue>
     private val serdePreAggregatedData: SpecificAvroSerde<SensorDataPreAggregation>
     private val serdeAggregatedData: SpecificAvroSerde<SensorDataAggregation>
@@ -22,6 +23,12 @@ class StreamProcessor(properties: StreamProperties) {
 
     init {
 
+        val registryConfig = mutableMapOf<String, String>()
+        registryConfig[AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG] =
+            properties.configureProperties().getProperty("schema.registry.url")
+
+        serdeRawData = SpecificAvroSerde<SensorData>()
+        serdeRawData.configure(registryConfig, false)
 
         serdeDataPerValue = SpecificAvroSerde<SensorDataPerValue>()
         serdeDataPerValue.configure(registryConfig, false)
@@ -35,13 +42,36 @@ class StreamProcessor(properties: StreamProperties) {
         serdeAggregatedKey = SpecificAvroSerde<SensorDataAggregationKey>()
         serdeAggregatedKey.configure(registryConfig, true) // true because it's a key
 
-
+        streams = KafkaStreams(createTopology(), properties.configureProperties())
         logger("Kafka Streams").info(createTopology().describe())
     }
 
     private fun createTopology(): Topology {
 
         val processor = StreamsBuilder()
+
+        processor
+            .stream("sensor-data-raw",
+            Consumed.with(Serdes.String(), serdeRawData))
+
+            .mapValues { value -> convertTemperature(value) }
+            .flatMapValues { value -> splitDataPoints(value) }
+
+            .groupBy({_,  value -> SensorDataAggregationKey(value.getSensorId(), value.getType())},
+            Grouped.with(serdeAggregatedKey, serdeDataPerValue))
+
+            .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMillis(10000L)))
+            .aggregate(
+                {SensorDataPreAggregation(0.0, 0, "", "")},
+                {_, value, aggregate -> aggregateEvents(value, aggregate)},
+                Materialized.with(serdeAggregatedKey, serdePreAggregatedData)
+            )
+            .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded()))
+            .toStream()
+            .mapValues { value -> calculateAverage(value) }
+            .to("sensor-data-aggregation-streams",
+            Produced.with(WindowedSerdes.TimeWindowedSerde(serdeAggregatedKey, 10000L),
+            serdeAggregatedData))
 
 
         return processor.build()
